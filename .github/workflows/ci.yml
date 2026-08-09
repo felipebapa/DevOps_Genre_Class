@@ -25,7 +25,7 @@ jobs:
 
       - name: Lint con ruff
         run: uv run ruff check .
-        continue-on-error: true  # borramos cuando el code esté limpio
+ #       continue-on-error: true
 
       - name: Verificar que los módulos importan sin errores
         run: |
@@ -34,4 +34,4 @@ jobs:
 
       - name: Ejecutar pruebas (pytest)
         run: uv run pytest -v
-        continue-on-error: true  # borramos al incorporar los tests/
+ #       continue-on-error: true
