@@ -1,0 +1,22 @@
+[project]
+name = "nlp-dgo-genre-classification"
+version = "0.1.0"
+description = "Multi-label audiovisual genre classifier using a hybrid NLP pipeline (SentenceTransformers + TF-IDF over spaCy lemmas) with a Streamlit UI for interactive inference"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "en-core-web-sm",
+    "ipykernel>=7.2.0",
+    "nltk>=3.9.4",
+    "openpyxl>=3.1.5",
+    "pandas>=3.0.2",
+    "plotly>=6.7.0",
+    "scikit-learn>=1.8.0",
+    "scipy>=1.17.1",
+    "sentence-transformers>=5.4.1",
+    "spacy>=3.8.13",
+    "streamlit>=1.56.0",
+]
+
+[tool.uv.sources]
+en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" }
