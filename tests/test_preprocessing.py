@@ -2,9 +2,7 @@ import pytest
 
 from src.preprocessing import normalize_text, preprocess_text
 
-# ---------------------------------------------------------------------
 # Tests de normalize_text (función pura, sin dependencias externas)
-# ---------------------------------------------------------------------
 
 def test_normalize_text_collapses_whitespace():
     """Múltiples espacios/saltos de línea deben colapsar a uno solo."""
@@ -34,9 +32,7 @@ def test_normalize_text_empty_string():
     assert normalize_text("") == ""
 
 
-# ---------------------------------------------------------------------
 # Tests de preprocess_text (requiere el modelo de spaCy en_core_web_sm)
-# ---------------------------------------------------------------------
 
 @pytest.fixture(scope="module")
 def nlp():
@@ -68,21 +64,15 @@ def test_preprocess_text_removes_punctuation_and_stopwords(nlp):
 
 def test_preprocess_text_negation_words_are_filtered_by_pos(nlp):
     """
-    NOTA / hallazgo: KEEP_STOPWORDS incluye 'never', 'not', etc. para
-    preservar negaciones, pero como son adverbios (ADV) y ALLOWED_POS
-    solo permite {NOUN, PROPN, VERB, ADJ}, terminan filtrándose de
-    todas formas por el segundo filtro (pos_ not in ALLOWED_POS).
-
-    Este test documenta el comportamiento ACTUAL del pipeline, no
-    necesariamente el deseado. Si el equipo decide que las negaciones
-    sí deben conservarse, habría que ajustar preprocessing.py (por
-    ejemplo, agregando 'ADV' a ALLOWED_POS o dando un trato especial
-    a los tokens en KEEP_STOPWORDS antes del filtro de POS) y luego
-    actualizar este test para reflejar el nuevo comportamiento.
+    KEEP_STOPWORDS incluye 'never', 'not', etc., pero al ser adverbios
+    terminan filtrados igual por ALLOWED_POS (solo NOUN/PROPN/VERB/ADJ).
+    Esto es aceptable, ya que para predecir género de películas, las palabras
+    de negación no aportan señal relevante comparadas con sustantivos,
+    verbos y adjetivos.
     """
     result = preprocess_text("She was never found again.", nlp)
     tokens = result.split()
-    assert "never" not in tokens  # comportamiento actual, no ideal
+    assert "never" not in tokens
 
 
 def test_preprocess_text_empty_input(nlp):

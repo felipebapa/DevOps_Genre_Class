@@ -5,9 +5,7 @@ from scipy.sparse import csr_matrix
 from src import model_utils
 from src.model_utils import _REQUIRED, models_exist, predict_genres
 
-# ---------------------------------------------------------------------
 # Tests de models_exist()
-# ---------------------------------------------------------------------
 
 def test_models_exist_false_when_directory_missing(tmp_path, monkeypatch):
     """Si la carpeta models/ no existe o está vacía, debe devolver False."""
@@ -36,10 +34,8 @@ def test_models_exist_false_when_one_file_missing(tmp_path, monkeypatch):
     assert models_exist() is False
 
 
-# ---------------------------------------------------------------------
 # Tests de predict_genres() usando artefactos y modelos "falsos" (mocks)
 # No requiere tener modelos entrenados reales ni spaCy descargado.
-# ---------------------------------------------------------------------
 
 class _FakeScaler:
     """Simula un scaler de sklearn: transform() devuelve el input tal cual."""
