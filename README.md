@@ -10,27 +10,38 @@ Pipeline NLP híbrido para clasificación multilabel de géneros a partir de la 
 - Luis Eduardo Uribe
 - Felipe Barreto Patiño
 
-*Proyecto Final — Procesamiento de Lenguaje Natural, Maestría en Inteligencia Artificial*
+*Proyecto — DevOps, Maestría en Inteligencia Artificial*
 
 ---
 
 ## Estructura del proyecto
 
 ```
-nlp-dgo/
-├── app.py                  # Aplicación Streamlit (3 tabs: intro, métricas, predicción)
-├── train.py                # Script de entrenamiento — genera los artefactos en models/
+DevOps_Genre_Class/
+├── .github/
+│   └── workflows/
+│       └── ci.yml           # Workflow de CI: lint (ruff), imports y tests (pytest) en cada push/PR
+├── app.py                   # Aplicación Streamlit (3 tabs: intro, métricas, predicción)
+├── train.py                 # Script de entrenamiento — genera los artefactos en models/
 ├── src/
-│   ├── preprocessing.py    # Pipeline de preprocesamiento con spaCy
-│   └── model_utils.py      # Carga de artefactos y función de predicción
+│   ├── __init__.py
+│   ├── preprocessing.py     # Pipeline de preprocesamiento con spaCy
+│   └── model_utils.py       # Carga de artefactos y función de predicción
+├── tests/
+│   ├── __init__.py
+│   ├── test_preprocessing.py   # Pruebas unitarias de normalize_text() y preprocess_text()
+│   └── test_model_utils.py     # Pruebas unitarias de models_exist() y predict_genres() (con mocks)
 ├── notebooks/
 │   ├── KLUSTERS.xlsx                                    # Dataset principal
 │   ├── Test_of_AUDIOVISUAL_Class_NLP.ipynb              # Notebook de experimentación
 │   ├── Last_resultados_modelo_hibrido_embeddings_tfidf.csv
 │   └── thresholds_por_genero.csv
-├── models/                 # Artefactos entrenados (generados por train.py, no en git)
-├── pyproject.toml
-└── uv.lock
+├── models/                  # Artefactos entrenados (generados por train.py, no en git)
+├── .gitignore
+├── .python-version
+├── pyproject.toml           # Incluye dependencias de dev: pytest, ruff
+├── uv.lock
+└── README.md
 ```
 
 ---
