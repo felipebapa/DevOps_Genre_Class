@@ -2,7 +2,6 @@ import pytest
 
 from src.preprocessing import normalize_text, preprocess_text
 
-
 # ---------------------------------------------------------------------
 # Tests de normalize_text (función pura, sin dependencias externas)
 # ---------------------------------------------------------------------

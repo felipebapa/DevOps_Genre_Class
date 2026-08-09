@@ -2,9 +2,8 @@ import numpy as np
 import pytest
 from scipy.sparse import csr_matrix
 
-import src.model_utils as model_utils
+from src import model_utils
 from src.model_utils import _REQUIRED, models_exist, predict_genres
-
 
 # ---------------------------------------------------------------------
 # Tests de models_exist()

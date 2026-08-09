@@ -7,16 +7,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+import joblib
 import numpy as np
 import pandas as pd
-import joblib
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MultiLabelBinarizer, StandardScaler, MaxAbsScaler
+from scipy.sparse import hstack
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, f1_score
+from sklearn.model_selection import train_test_split
 from sklearn.multiclass import OneVsRestClassifier
-from sklearn.metrics import f1_score, classification_report
-from scipy.sparse import hstack
+from sklearn.preprocessing import MaxAbsScaler, MultiLabelBinarizer, StandardScaler
 
 from src.preprocessing import load_spacy_model, preprocess_text
 
@@ -63,6 +63,7 @@ print(f"  Split: {len(X_train)} train / {len(X_val)} val / {len(X_test)} test")
 # ── Embeddings ─────────────────────────────────────────────────────────────
 print("Encoding embeddings with all-MiniLM-L6-v2...")
 from sentence_transformers import SentenceTransformer
+
 emb_model = SentenceTransformer("all-MiniLM-L6-v2")
 X_train_emb = emb_model.encode(X_train.tolist(), show_progress_bar=True)
 X_val_emb   = emb_model.encode(X_val.tolist(),   show_progress_bar=True)

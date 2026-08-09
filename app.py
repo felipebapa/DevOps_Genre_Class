@@ -3,10 +3,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.preprocessing import MultiLabelBinarizer
@@ -150,7 +149,7 @@ with tab2:
             pred_genres = df["predicted_genres"].apply(parse_col).tolist()
 
             all_genres = sorted(
-                set(g for genres in true_genres + pred_genres for g in genres)
+                {g for genres in true_genres + pred_genres for g in genres}
             )
 
             mlb = MultiLabelBinarizer(classes=all_genres)
@@ -215,7 +214,7 @@ with tab2:
                 xaxis_title="F1-Score",
                 xaxis_range=[0, 1.15],
                 height=700,
-                margin=dict(l=10, r=80, t=50, b=20),
+                margin={"l": 10, "r": 80, "t": 50, "b": 20},
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
             )
@@ -259,7 +258,7 @@ with tab2:
         fig2.update_traces(textposition="top center", textfont_size=10)
         fig2.add_shape(
             type="line", x0=0, y0=0, x1=1, y1=1,
-            line=dict(color="gray", dash="dash", width=1),
+            line={"color": "gray", "dash": "dash", "width": 1},
         )
         fig2.update_layout(height=520, plot_bgcolor="rgba(0,0,0,0)")
         st.plotly_chart(fig2, use_container_width=True)
@@ -292,7 +291,7 @@ with tab2:
 with tab3:
     st.title("Predicción de Géneros")
 
-    from src.model_utils import models_exist, load_artifacts, predict_genres
+    from src.model_utils import load_artifacts, models_exist, predict_genres
 
     if not models_exist():
         st.warning(
@@ -437,12 +436,12 @@ with tab3:
                     x=thr_vals,
                     y=genres_sorted,
                     mode="markers",
-                    marker=dict(
-                        symbol="line-ns",
-                        size=14,
-                        color="crimson",
-                        line=dict(width=2, color="crimson"),
-                    ),
+                    marker={
+                        "symbol": "line-ns",
+                        "size": 14,
+                        "color": "crimson",
+                        "line": {"width": 2, "color": "crimson"},
+                    },
                     name="Umbral",
                     hovertemplate="%{y} umbral: %{x:.2f}<extra></extra>",
                 )
@@ -453,8 +452,8 @@ with tab3:
                 xaxis_range=[0, 1.18],
                 height=750,
                 showlegend=True,
-                legend=dict(x=0.82, y=0.02),
-                margin=dict(l=10, r=90, t=20, b=20),
+                legend={"x": 0.82, "y": 0.02},
+                margin={"l": 10, "r": 90, "t": 20, "b": 20},
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
             )
