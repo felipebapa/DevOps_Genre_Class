@@ -8,8 +8,5 @@ __pycache__
 
 tests/
 README.md
-
 notebooks/*
-!notebooks/KLUSTERS.xlsx
 
-models/
