@@ -17,9 +17,6 @@ build/
 .eggs/
 *.egg
 
-# ── Trained model artifacts (regenerar con: uv run python train.py) ───────────
-models/
-
 # ── Environment variables ─────────────────────────────────────────────────────
 .env
 .env.*
