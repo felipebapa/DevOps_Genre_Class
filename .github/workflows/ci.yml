@@ -35,3 +35,33 @@ jobs:
       - name: Ejecutar pruebas (pytest)
         run: uv run pytest -v
  #       continue-on-error: true
+
+      - name: Exportar dependencias para Snyk
+        run: |
+          uv export \
+            --format requirements-txt \
+            --all-extras \
+            --no-hashes \
+            --no-emit-project \
+            --output-file requirements-snyk.txt
+
+      - name: Preparar dependencias para Snyk
+        run: |
+          python -m pip install -r requirements-snyk.txt
+          python -m pip install cffi pycparser watchdog
+
+      - name: Instalar Snyk
+        run: |
+          npm install -g snyk
+          snyk --version
+
+      - name: Analizar vulnerabilidades con Snyk
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          snyk test \
+            --file=requirements-snyk.txt \
+            --package-manager=pip \
+            --command=$(which python) \
+            --severity-threshold=high
