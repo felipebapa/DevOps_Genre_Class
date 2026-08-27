@@ -35,3 +35,11 @@ jobs:
       - name: Ejecutar pruebas (pytest)
         run: uv run pytest -v
  #       continue-on-error: true
+
+      - name: Instalar Snyk
+        run: npm install -g snyk
+
+      - name: Analizar vulnerabilidades con Snyk
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: snyk test --file=pyproject.toml --package-manager=pip
