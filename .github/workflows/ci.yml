@@ -42,4 +42,4 @@ jobs:
       - name: Analizar vulnerabilidades con Snyk
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        run: snyk test --file=pyproject.toml --package-manager=pip
+        run: snyk test --file=uv.lock
