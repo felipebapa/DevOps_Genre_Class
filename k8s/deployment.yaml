@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: genre-classifier
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: genre-classifier
+  template:
+    metadata:
+      labels:
+        app: genre-classifier
+    spec:
+      containers:
+        - name: genre-classifier
+          image: leuribe2/devops-genre-class:11
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8501
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "3Gi"

@@ -55,6 +55,29 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([
+                    file(
+                        credentialsId: 'koga-kubeconfig',
+                        variable: 'KUBECONFIG'
+                    )
+                ]) {
+                    sh '''
+                        echo "Deploying build ${BUILD_NUMBER} to Koga..."
+
+                        kubectl set image \
+                            deployment/genre-classifier \
+                            genre-classifier=${IMAGE_NAME}:${BUILD_NUMBER}
+
+                        kubectl rollout status \
+                            deployment/genre-classifier \
+                            --timeout=600s
+                    '''
+                }
+            }
+        }
     }
 
     post {
