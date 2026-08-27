@@ -37,7 +37,9 @@ jobs:
  #       continue-on-error: true
 
       - name: Instalar Snyk
-        run: npm install -g snyk
+        run: |
+          npm install -g snyk
+          snyk --version
 
       - name: Analizar vulnerabilidades con Snyk
         env:
