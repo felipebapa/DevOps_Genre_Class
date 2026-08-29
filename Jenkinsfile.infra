@@ -16,7 +16,7 @@ pipeline {
     parameters {
         string(
             name: 'EXTRA_ALLOWED_HOSTS',
-            defaultValue: 'hyoga.ingsecurity.loc:5000,192.168.20.13:5000',
+            defaultValue: 'hyoga.ingsecurity.loc:5000,192.168.20.13:5000,100.96.85.152:5000',
             description: 'Hosts adicionales desde los que se accede a MLflow (UI y entrenamiento remoto). MLflow responde 403 a cualquier Host que no esté aquí.'
         )
         choice(
