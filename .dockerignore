@@ -18,3 +18,8 @@ scripts/
 train.py
 .gitignore
 .dockerignore
+
+# Despliegue, monitoreo y análisis estático: viven fuera del contenedor
+k8s/
+monitoring/
+sonar-project.properties
