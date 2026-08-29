@@ -180,8 +180,8 @@ pipeline {
  UI          : http://hyoga.ingsecurity.loc:5000
  Tracking URI: http://hyoga.ingsecurity.loc:5000   (para entrenar desde fuera)
 
- Si la UI no abre desde tu equipo, falta publicar el puerto 5000 en
- Twingate: hoy solo el 8080 esta expuesto.
+ El puerto 5000 ya esta publicado en Twingate. Si aun asi la UI da 403,
+ el Host desde el que entras no esta en EXTRA_ALLOWED_HOSTS.
 
  Siguiente paso: entrenar y promover el modelo.
    export MLFLOW_TRACKING_URI=http://hyoga.ingsecurity.loc:5000
