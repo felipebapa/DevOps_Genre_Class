@@ -7,6 +7,11 @@
 // Crear en Jenkins como job "Pipeline" -> Pipeline script from SCM,
 // con Script Path = Jenkinsfile.infra
 //
+// Nota: en la primera ejecucion Jenkins todavia no conoce los parametros
+// (los descubre al leer este archivo), por eso ACTION lleva un default
+// explicito en cada 'when': sin el, params.ACTION es null y todas las
+// etapas se saltarian dejando solo el diagnostico.
+//
 // La etapa 'Diagnose' imprime el valor de WORKSPACE_MOUNT que hay que poner
 // en el Jenkinsfile principal. Correr este job ANTES del CD.
 
@@ -75,7 +80,7 @@ pipeline {
 
         stage('Configure') {
             when {
-                expression { return params.ACTION == 'up' }
+                expression { return (params.ACTION ?: 'up') == 'up' }
             }
             steps {
                 sh '''
@@ -100,7 +105,7 @@ pipeline {
 
         stage('Start MLflow') {
             when {
-                expression { return params.ACTION == 'up' }
+                expression { return (params.ACTION ?: 'up') == 'up' }
             }
             steps {
                 sh '''
@@ -129,7 +134,7 @@ pipeline {
 
         stage('Verify') {
             when {
-                expression { return params.ACTION != 'down' }
+                expression { return (params.ACTION ?: 'up') != 'down' }
             }
             steps {
                 sh '''
@@ -157,7 +162,7 @@ pipeline {
 
         stage('Stop MLflow') {
             when {
-                expression { return params.ACTION == 'down' }
+                expression { return (params.ACTION ?: 'up') == 'down' }
             }
             steps {
                 sh '''
@@ -172,7 +177,7 @@ pipeline {
     post {
         success {
             script {
-                if (params.ACTION == 'up') {
+                if ((params.ACTION ?: 'up') == 'up') {
                     echo """
 =====================================================================
  MLflow arriba en el host de Jenkins.
