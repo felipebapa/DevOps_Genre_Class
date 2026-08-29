@@ -421,20 +421,40 @@ if USE_MLFLOW:
     ]
 
     print("Logging pyfunc model bundle to MLflow...")
-    model_info = mlflow.pyfunc.log_model(
-        name="model",
-        python_model=GenreClassifier(),
-        artifacts=build_artifacts_map(MODELS_DIR),
-        code_paths=["src"],
-        signature=signature,
-        input_example=pd.DataFrame({"plot": [str(X_test.iloc[0])]}),
-        pip_requirements=pip_requirements,
-        registered_model_name=None if args.no_register else args.model_name,
-    )
+
+    # En Windows, `log_model` con `code_paths` revienta al final con
+    # PermissionError: MLflow copia src/ a un directorio temporal, lo importa
+    # al cargar el modelo, y luego no puede borrarlo porque los módulos siguen
+    # abiertos. Ocurre DESPUÉS de registrar la versión, así que sin este manejo
+    # se pierde el alias (y con él, lo que el CD despliega) tras 15 minutos de
+    # entrenamiento. Verificado: pasa con y sin `input_example`.
+    model_info = None
+    try:
+        model_info = mlflow.pyfunc.log_model(
+            name="model",
+            python_model=GenreClassifier(),
+            artifacts=build_artifacts_map(MODELS_DIR),
+            code_paths=["src"],
+            signature=signature,
+            input_example=pd.DataFrame({"plot": [str(X_test.iloc[0])]}),
+            pip_requirements=pip_requirements,
+            registered_model_name=None if args.no_register else args.model_name,
+        )
+    except PermissionError as exc:
+        print(f"\nAVISO: MLflow no pudo borrar su directorio temporal: {exc}")
+        print("       Es un problema de Windows al limpiar, no del registro:")
+        print("       el modelo ya quedó guardado. Se continúa con el alias.")
 
     if not args.no_register:
-        version = model_info.registered_model_version
         client = MlflowClient()
+        if model_info is not None:
+            version = model_info.registered_model_version
+        else:
+            matches = client.search_model_versions(f"run_id='{run.info.run_id}'")
+            if not matches:
+                print("ERROR: no se encontró la versión recién creada.", file=sys.stderr)
+                sys.exit(1)
+            version = max((mv.version for mv in matches), key=int)
         client.set_model_version_tag(
             args.model_name, version, "f1_macro", f"{metrics['f1_macro']:.4f}"
         )

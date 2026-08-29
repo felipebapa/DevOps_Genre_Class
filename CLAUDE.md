@@ -117,6 +117,21 @@ Lo produce `train.py` localmente y lo baja el CD del registry. `.gitignore` usa 
 
 MLflow imprime emojis en sus mensajes de estado y la consola de Windows usa cp1252 → `UnicodeEncodeError` **al cerrar la corrida, después de entrenar 15 minutos**. `train.py` ya hace `sys.stdout.reconfigure(encoding="utf-8")`. Para otros scripts: `PYTHONUTF8=1`.
 
+### `log_model` revienta al final en Windows
+
+`mlflow.pyfunc.log_model` con `code_paths=["src"]` termina con
+`PermissionError: [WinError 5]` al borrar su directorio temporal: MLflow copia
+`src/` allí, lo importa al cargar el modelo, y Windows no borra un directorio
+con módulos Python abiertos.
+
+Lo traicionero es **cuándo** ocurre: después de registrar la versión, así que el
+modelo queda guardado pero el script muere antes de asignar el alias — 15 minutos
+de entrenamiento para acabar sin nada que desplegar. Pasa con y sin
+`input_example` (comprobado).
+
+`train.py` lo captura y recupera la versión por `run_id`. Si se toca ese bloque,
+no quitar el `try/except`. Deja un temporal huérfano por corrida; es inofensivo.
+
 ### Contrato de `scripts/mlflow_fetch_model.py`
 
 El Jenkinsfile distingue los exit codes, no los cambies sin actualizarlo:
