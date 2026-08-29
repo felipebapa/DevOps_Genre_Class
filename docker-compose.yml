@@ -1,0 +1,84 @@
+# Infraestructura local de MLOps: tracking server de MLflow + Jenkins,
+# en una red compartida (`mlops`) para que el pipeline pueda hablar con
+# el registry por nombre de servicio (http://mlflow:5000).
+#
+#   docker compose up -d                # levanta MLflow + Jenkins
+#   docker compose up -d mlflow         # solo MLflow (si ya tienes tu Jenkins)
+#
+# Si ya tienes un Jenkins corriendo fuera de este compose, conéctalo a la red:
+#   docker network connect mlops <nombre-del-contenedor-jenkins>
+
+name: genre-mlops
+
+services:
+  mlflow:
+    build:
+      context: ./docker/mlflow
+    image: genre-mlops/mlflow:3.15.1
+    container_name: mlflow
+    restart: unless-stopped
+    ports:
+      - "${MLFLOW_PORT:-5000}:5000"
+    volumes:
+      # Backend store (SQLite): experimentos, runs, métricas y Model Registry.
+      - mlflow-store:/mlflow/store
+      # Artifact store: los .joblib, reportes y el bundle del modelo pyfunc.
+      - mlflow-artifacts:/mlflow/artifacts
+    # --allowed-hosts: MLflow 3 rechaza con 403 cualquier Host header que no
+    # esté en la lista (protección anti DNS rebinding). Sin `mlflow:5000` los
+    # contenedores del pipeline no pueden hablar con el servidor.
+    #
+    # Si alguien accede desde otra máquina (UI o entrenamiento remoto), hay que
+    # añadir esa dirección. Se configura en el archivo .env — ver .env.example.
+    command: >
+      mlflow server
+        --host 0.0.0.0
+        --port 5000
+        --backend-store-uri sqlite:////mlflow/store/mlflow.db
+        --artifacts-destination /mlflow/artifacts
+        --serve-artifacts
+        --allowed-hosts ${MLFLOW_ALLOWED_HOSTS:-mlflow:5000,localhost:5000,127.0.0.1:5000}
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - mlops
+
+  jenkins:
+    build:
+      context: ./docker/jenkins
+    image: genre-mlops/jenkins:lts-jdk21
+    container_name: jenkins
+    restart: unless-stopped
+    # root para poder usar el socket de Docker sin pelear con el GID del host.
+    user: root
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins-home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    networks:
+      - mlops
+
+volumes:
+  mlflow-store:
+  mlflow-artifacts:
+  jenkins-home:
+
+networks:
+  mlops:
+    # Nombre fijo: el Jenkinsfile lo usa en `docker run --network mlops`.
+    name: mlops
