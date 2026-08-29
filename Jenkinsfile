@@ -243,6 +243,17 @@ pipeline {
 
                 echo "Removing model artifacts fetched from the registry..."
                 rm -rf models
+
+                # Al quitar los tags de arriba, las capas de la imagen quedan
+                # huérfanas y siguen ocupando disco. hyoga va justa de espacio y
+                # cada build genera una imagen de varios GB, así que se liberan.
+                # Solo `image prune` (sin -a): borra lo que ya no referencia
+                # ningún tag, nunca imágenes en uso como el cliente de MLflow.
+                echo "Reclaiming dangling image layers..."
+                docker image prune -f || true
+
+                echo "Disk usage after cleanup:"
+                docker system df || true
             '''
         }
         success {

@@ -57,6 +57,21 @@ pipeline {
                     docker compose version || echo "AVISO: falta el plugin docker compose"
                     echo ""
 
+                    # hyoga tiene poco disco: el CD construye aqui una imagen de
+                    # ~3 GB en cada build, frente a los ~4 MB que ocupa una
+                    # version del modelo en MLflow. El riesgo esta en Docker.
+                    echo "--- Espacio en disco ---"
+                    df -h / /var/lib/docker 2>/dev/null || df -h
+                    echo ""
+
+                    echo "--- Que ocupa Docker ---"
+                    docker system df
+                    echo ""
+
+                    echo "--- Volumenes de MLflow ---"
+                    docker system df -v 2>/dev/null | grep -i "mlflow\|VOLUME NAME" | head -5 || true
+                    echo ""
+
                     echo "--- Jenkins corre dentro de un contenedor? ---"
                     if [ -f /.dockerenv ]; then
                         echo "SI. El daemon de Docker es el del host, asi que los bind mounts"
