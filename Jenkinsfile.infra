@@ -1,0 +1,195 @@
+// Job de bootstrap: levanta el tracking server de MLflow en el mismo host
+// donde corre Jenkins (hyoga) y verifica que el pipeline pueda hablarle.
+//
+// Existe porque el host de Jenkins no siempre es accesible por SSH: este job
+// es la vía para operar su Docker sin salir de la interfaz de Jenkins.
+//
+// Crear en Jenkins como job "Pipeline" -> Pipeline script from SCM,
+// con Script Path = Jenkinsfile.infra
+//
+// La etapa 'Diagnose' imprime el valor de WORKSPACE_MOUNT que hay que poner
+// en el Jenkinsfile principal. Correr este job ANTES del CD.
+
+pipeline {
+    agent any
+
+    parameters {
+        string(
+            name: 'EXTRA_ALLOWED_HOSTS',
+            defaultValue: 'hyoga.ingsecurity.loc:5000,192.168.20.13:5000',
+            description: 'Hosts adicionales desde los que se accede a MLflow (UI y entrenamiento remoto). MLflow responde 403 a cualquier Host que no esté aquí.'
+        )
+        choice(
+            name: 'ACTION',
+            choices: ['up', 'status', 'down'],
+            description: 'up = levantar/actualizar MLflow · status = solo diagnosticar · down = detener (conserva los datos)'
+        )
+    }
+
+    environment {
+        MLFLOW_NETWORK = 'mlops'
+        MLFLOW_IMAGE   = 'genre-mlops/mlflow:3.15.1'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Diagnose') {
+            steps {
+                sh '''
+                    echo "=========== Entorno del agente Jenkins ==========="
+                    echo "WORKSPACE : ${WORKSPACE}"
+                    echo "usuario   : $(id -un 2>/dev/null || echo desconocido)"
+                    echo ""
+
+                    echo "--- Docker ---"
+                    docker --version
+                    docker compose version || echo "AVISO: falta el plugin docker compose"
+                    echo ""
+
+                    echo "--- Jenkins corre dentro de un contenedor? ---"
+                    if [ -f /.dockerenv ]; then
+                        echo "SI. El daemon de Docker es el del host, asi que los bind mounts"
+                        echo "con rutas internas NO funcionan: hay que montar el volumen nombrado."
+                        echo ""
+                        echo "Volumenes candidatos para el workspace:"
+                        docker volume ls --format "{{.Name}}" | grep -i "jenkins" || \
+                            echo "  (ninguno con 'jenkins' en el nombre)"
+                        echo ""
+                        echo ">>> WORKSPACE_MOUNT = <volumen-de-jenkins>:/var/jenkins_home"
+                    else
+                        echo "NO, Jenkins es nativo en el host."
+                        echo ""
+                        echo ">>> WORKSPACE_MOUNT = \\"\\${WORKSPACE}:\\${WORKSPACE}\\""
+                    fi
+                    echo ""
+                    echo "Copiar ese valor a WORKSPACE_MOUNT en el Jenkinsfile principal."
+                '''
+            }
+        }
+
+        stage('Configure') {
+            when {
+                expression { return params.ACTION == 'up' }
+            }
+            steps {
+                sh '''
+                    # MLflow 3 rechaza con 403 cualquier Host fuera de la allowlist.
+                    # 'mlflow:5000' es obligatorio: es como le hablan los contenedores
+                    # efimeros del pipeline dentro de la red mlops.
+                    BASE="mlflow:5000,localhost:5000,127.0.0.1:5000"
+
+                    if [ -n "${EXTRA_ALLOWED_HOSTS}" ]; then
+                        ALLOWED="${BASE},${EXTRA_ALLOWED_HOSTS}"
+                    else
+                        ALLOWED="${BASE}"
+                    fi
+
+                    printf 'MLFLOW_ALLOWED_HOSTS=%s\\nMLFLOW_PORT=5000\\n' "${ALLOWED}" > .env
+
+                    echo "Archivo .env generado:"
+                    cat .env
+                '''
+            }
+        }
+
+        stage('Start MLflow') {
+            when {
+                expression { return params.ACTION == 'up' }
+            }
+            steps {
+                sh '''
+                    echo "Levantando el tracking server..."
+                    docker compose up -d mlflow
+
+                    echo ""
+                    echo "Esperando a que quede healthy..."
+                    for i in $(seq 1 40); do
+                        estado=$(docker inspect --format "{{.State.Health.Status}}" mlflow 2>/dev/null || echo "sin-contenedor")
+                        if [ "$estado" = "healthy" ]; then
+                            echo "MLflow healthy tras ${i} intentos."
+                            break
+                        fi
+                        sleep 3
+                    done
+
+                    if [ "$(docker inspect --format "{{.State.Health.Status}}" mlflow 2>/dev/null)" != "healthy" ]; then
+                        echo "ERROR: MLflow no llego a healthy. Log:"
+                        docker compose logs mlflow --tail 40
+                        exit 1
+                    fi
+                '''
+            }
+        }
+
+        stage('Verify') {
+            when {
+                expression { return params.ACTION != 'down' }
+            }
+            steps {
+                sh '''
+                    echo "--- Estado de los contenedores ---"
+                    docker compose ps || true
+                    echo ""
+
+                    echo "--- Prueba desde la red ${MLFLOW_NETWORK}, igual que el CD ---"
+                    docker image inspect ${MLFLOW_IMAGE} >/dev/null 2>&1 || \
+                        docker build -t ${MLFLOW_IMAGE} docker/mlflow
+
+                    docker run --rm --network ${MLFLOW_NETWORK} ${MLFLOW_IMAGE} \
+                        python -c "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://mlflow:5000/health', timeout=15).status == 200 else 1)"
+                    echo "OK: el pipeline puede resolver http://mlflow:5000"
+                    echo ""
+
+                    echo "--- Modelos registrados ---"
+                    docker run --rm --network ${MLFLOW_NETWORK} \
+                        -e MLFLOW_TRACKING_URI=http://mlflow:5000 \
+                        ${MLFLOW_IMAGE} \
+                        python -c "from mlflow.tracking import MlflowClient; ms=[m.name for m in MlflowClient().search_registered_models()]; print(ms if ms else 'ninguno todavia: hay que entrenar y promover @champion')"
+                '''
+            }
+        }
+
+        stage('Stop MLflow') {
+            when {
+                expression { return params.ACTION == 'down' }
+            }
+            steps {
+                sh '''
+                    # Sin -v: los volumenes con los experimentos y el registry se conservan.
+                    docker compose stop mlflow
+                    echo "MLflow detenido. Los datos siguen en los volumenes."
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                if (params.ACTION == 'up') {
+                    echo """
+=====================================================================
+ MLflow arriba en el host de Jenkins.
+
+ UI          : http://hyoga.ingsecurity.loc:5000
+ Tracking URI: http://hyoga.ingsecurity.loc:5000   (para entrenar desde fuera)
+
+ Si la UI no abre desde tu equipo, falta publicar el puerto 5000 en
+ Twingate: hoy solo el 8080 esta expuesto.
+
+ Siguiente paso: entrenar y promover el modelo.
+   export MLFLOW_TRACKING_URI=http://hyoga.ingsecurity.loc:5000
+   uv run python train.py --promote-alias champion
+=====================================================================
+"""
+                }
+            }
+        }
+    }
+}
