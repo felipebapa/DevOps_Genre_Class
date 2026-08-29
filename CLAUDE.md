@@ -132,6 +132,21 @@ de entrenamiento para acabar sin nada que desplegar. Pasa con y sin
 `train.py` lo captura y recupera la versión por `run_id`. Si se toca ese bloque,
 no quitar el `try/except`. Deja un temporal huérfano por corrida; es inofensivo.
 
+### En MLflow 3 el modelo NO aparece en los artefactos de la corrida
+
+Pregunta recurrente: "entreno, veo las metricas, pero no veo el modelo".
+
+MLflow 3 dejo de guardar el modelo como un artefacto mas de la corrida. Ahora es
+una entidad propia (*Logged Model*) con su ID: la version apunta a
+`models:/m-<hash>`, no a `runs:/<run_id>/model`. En los artefactos de la corrida
+solo queda `evaluation/`.
+
+El modelo se ve en el **Model Registry** (`#/models/genre-classifier`) o en la
+seccion *Models* de la corrida, no en *Artifacts*. Nada que arreglar.
+
+`mlflow.artifacts.download_artifacts("models:/<nombre>@<alias>")` resuelve esa
+indireccion sola, asi que el CD no se entera del cambio.
+
 ### Contrato de `scripts/mlflow_fetch_model.py`
 
 El Jenkinsfile distingue los exit codes, no los cambies sin actualizarlo:
