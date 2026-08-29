@@ -28,12 +28,20 @@ pipeline {
         MLFLOW_NETWORK      = 'mlops'
         MLFLOW_IMAGE        = 'genre-mlops/mlflow:3.15.1'
 
-        // Cómo se monta el workspace dentro de los contenedores efímeros que
-        // hablan con MLflow. El daemon de Docker es el del host, así que la ruta
-        // debe existir para él:
-        //   - Jenkins en contenedor (docker-compose.yml) -> volumen nombrado
-        //   - Jenkins nativo en el host                  -> "${WORKSPACE}:${WORKSPACE}"
-        WORKSPACE_MOUNT     = 'genre-mlops_jenkins-home:/var/jenkins_home'
+        // Cómo se monta el workspace en los contenedores efímeros que hablan
+        // con MLflow. El daemon de Docker es el del host, así que la ruta tiene
+        // que existir para él.
+        //
+        // Jenkins corre NATIVO en hyoga (verificado con Jenkinsfile.infra), de
+        // modo que el daemon ve las mismas rutas que el agente y basta montar
+        // el workspace sobre sí mismo. Si algún día Jenkins pasara a correr en
+        // contenedor, cambiar por el volumen nombrado que use su jenkins_home:
+        //   WORKSPACE_MOUNT = 'genre-mlops_jenkins-home:/var/jenkins_home'
+        //
+        // Ojo: el valor NO puede ser el literal '${WORKSPACE}:${WORKSPACE}'.
+        // El shell no expande dos veces, así que Docker recibiría esa cadena
+        // sin resolver. Por eso se interpola aquí, en Groovy.
+        WORKSPACE_MOUNT     = "${WORKSPACE}:${WORKSPACE}"
     }
 
     stages {
@@ -50,6 +58,18 @@ pipeline {
                     echo "Checking Docker environment..."
                     docker --version
                     test -f Dockerfile
+
+                    # Si la interpolación de ${WORKSPACE} fallara, Docker daría
+                    # un error de bind mount difícil de leer tres etapas después.
+                    echo "Workspace mount: ${WORKSPACE_MOUNT}"
+                    case "${WORKSPACE_MOUNT}" in
+                        *'$'*|:*|*:)
+                            echo "ERROR: WORKSPACE_MOUNT quedó sin resolver."
+                            echo "       Valor actual: '${WORKSPACE_MOUNT}'"
+                            echo "       Revisa esa variable en el bloque environment."
+                            exit 1
+                            ;;
+                    esac
 
                     echo "Ensuring MLflow client image..."
                     docker image inspect ${MLFLOW_IMAGE} >/dev/null 2>&1 || \
