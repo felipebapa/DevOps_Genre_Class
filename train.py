@@ -126,7 +126,27 @@ if USE_MLFLOW:
 
     tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
     mlflow.set_tracking_uri(tracking_uri)
-    mlflow.set_experiment(args.experiment)
+
+    # Primer contacto con el servidor. Se comprueba aquí, antes de cargar spaCy
+    # y el dataset: un servidor inalcanzable suelta un traceback de urllib3 de
+    # cien líneas que no dice ni contra qué URI se estaba intentando.
+    try:
+        mlflow.set_experiment(args.experiment)
+    except Exception as exc:  # noqa: BLE001 - cualquier fallo aqui es de conexion
+        print(f"\nERROR: no hay un servidor MLflow escuchando en {tracking_uri}", file=sys.stderr)
+        print("\nRevisa, en este orden:", file=sys.stderr)
+        print("  1. Que MLFLOW_TRACKING_URI apunte a donde crees.", file=sys.stderr)
+        print(f"     Valor actual: {tracking_uri}", file=sys.stderr)
+        if os.getenv("MLFLOW_TRACKING_URI"):
+            print("     Viene de la variable de entorno. Para usar el servidor local:", file=sys.stderr)
+            print('       PowerShell:  $env:MLFLOW_TRACKING_URI = "http://localhost:5000"', file=sys.stderr)
+            print("       bash:        export MLFLOW_TRACKING_URI=http://localhost:5000", file=sys.stderr)
+        print("  2. Que el servidor esté arriba:  docker compose up -d mlflow", file=sys.stderr)
+        print("  3. Si solo quieres entrenar, sin registrar nada:", file=sys.stderr)
+        print("       python train.py --no-mlflow", file=sys.stderr)
+        print(f"\nDetalle: {type(exc).__name__}: {exc}", file=sys.stderr)
+        sys.exit(1)
+
     print(f"MLflow tracking URI: {tracking_uri}")
     print(f"MLflow experiment:   {args.experiment}")
 
