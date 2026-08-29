@@ -10,3 +10,11 @@ tests/
 README.md
 notebooks/*
 
+# Infraestructura y tooling: no forman parte de la imagen de la app
+Jenkinsfile
+docker-compose.yml
+docker/
+scripts/
+train.py
+.gitignore
+.dockerignore

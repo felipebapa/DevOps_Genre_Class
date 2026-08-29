@@ -51,3 +51,13 @@ htmlcov/
 
 # ── mypy ──────────────────────────────────────────────────────────────────────
 .mypy_cache/
+
+# ── Artefactos del modelo ─────────────────────────────────────────────────────
+# Ya no se versionan: los produce train.py y el CD los baja del Model Registry
+# de MLflow (scripts/mlflow_fetch_model.py) antes del docker build.
+models/*
+!models/.gitkeep
+
+# ── MLflow (corridas locales con file store) ─────────────────────────────────
+mlruns/
+mlartifacts/
