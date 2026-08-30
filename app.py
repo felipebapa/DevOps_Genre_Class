@@ -390,7 +390,7 @@ with tab3:
                     max_labels=max_labels,
                 )
 
-            probs = result["probabilities"]
+            probs = result["production_probabilities"] # Se ha cambiado el nombre de "probabilities" para la simulación
             thresholds = result["thresholds"]
             predicted = result["predicted"]
 
