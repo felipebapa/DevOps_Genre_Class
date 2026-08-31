@@ -26,6 +26,17 @@ dev = [
     "pytest>=9.1.1",
     "ruff>=0.16.2",
 ]
+# Grupo aparte: el cliente de MLflow solo hace falta para entrenar y registrar.
+# La imagen de la app se construye con `uv sync --frozen --no-dev`, que no lo
+# instala, para no engordarla con el tracking client.
+#   uv sync --group mlops
+#
+# Se usa `mlflow-skinny` (cliente sin el servidor ni los flavors pesados): el
+# paquete `mlflow` completo fija pandas<3 y este proyecto usa pandas>=3.
+# El servidor corre aparte, con mlflow completo, en docker/mlflow/Dockerfile.
+mlops = [
+    "mlflow-skinny>=3.15.1",
+]
 
 
 [tool.ruff]
